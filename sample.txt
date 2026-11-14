@@ -1,0 +1,1 @@
+Palm Mind document upload test. This text will be chunked and embedded.
