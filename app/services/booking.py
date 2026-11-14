@@ -1,4 +1,5 @@
 import json
+import re
 from functools import lru_cache
 
 from google import genai
@@ -28,6 +29,18 @@ def _get_gemini_client() -> genai.Client:
 
 def _booking_key(session_id: str) -> str:
     return f"{_BOOKING_KEY_PREFIX}{session_id}"
+
+def _looks_like_booking_request(message: str) -> bool:
+    normalized = re.sub(r"[^a-z0-9]+", " ", message.casefold())
+    booking_terms = {
+        "appointment",
+        "book",
+        "booking",
+        "interview",
+        "reserve",
+        "schedule",
+    }
+    return bool(set(normalized.split()) & booking_terms)
 
 
 def _get_booking_state(session_id: str) -> BookingSessionState | None:
@@ -130,6 +143,9 @@ def process_booking_turn(
     message: str,
 ) -> str | None:
     state = _get_booking_state(session_id)
+    if state is None and not _looks_like_booking_request(message):
+        return None
+
     extraction = _extract_booking_turn(message, state)
 
     if state is None and extraction.intent != "book":
